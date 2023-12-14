@@ -1,57 +1,38 @@
 import streamlit as st
-from langchain.document_loaders import PyPDFLoader
+# from langchain.document_loaders import PyPDFLoader
+from langchain.document_loaders import PyMuPDFLoader as PyMuPDF
 import spacy
 import time
 import os
 from uuid import uuid4
-def save_path(uploaded_file, target_folder="data"):
-  """
-  Saves an uploaded file to the program directory and returns its absolute path.
+from pathlib import Path
 
-  Args:
-      uploaded_file: An `UploadedFile` object containing the uploaded data.
+def save_path(template_file):
+    save_folder = r'C:\Users\seq_amal\Strmlitapp\data'
+    save_path = Path(save_folder, template_file.name)
+    with open(save_path, mode='wb') as w:
+        w.write(template_file.getvalue())
 
-  Returns:
-      The absolute path of the saved file.
-  """
+    if save_path.exists():
+        st.success(f'File {template_file.name} is successfully saved!')
+    return save_path
 
-  # Get the filename and extension
-  filename, extension = os.path.splitext(uploaded_file.name)
-
-  # Generate a unique filename to avoid collision
-  unique_filename = f"{filename}_{uuid4()}{extension}"
-  file_path =os.path.join(os.path.dirname(__file__), target_folder)
-
-  # Create the "data" folder if it doesn't exist
-  if not os.path.exists(file_path):
-    os.makedirs(file_path)
-
-
-  # Write the uploaded file data to the new file
-  with open(file_path, "wb") as f:
-    f.write(uploaded_file.getvalue())
-
-  # Return the absolute path of the saved file
-  return os.path.abspath(file_path)
 # Function definitions
-def get_form_structure(template_path):
-    
-    file_path = save_path(template_path)
-    reader = PyPDFLoader(file_path) 
-    form_fields = []
-    for page in reader.pages:
-        for field in page.form_fields:
-            form_fields.append({
-                "name": field.name,
-                "bbox": field.bbox,
-                "type": field.type,
-            })
+def get_form_structure(file_path):
+    with PyMuPDF.open(file_path) as pdf:
+        form_fields = []
+        for page in pdf:
+            for field in page.form_fields:
+                form_fields.append({
+                    "name": field.name,
+                    "bbox": field.bbox,
+                    "type": field.type,
+                })
     return form_fields
 
-def extract_data(document_path):
-    file_path=save_path(document_path)
+def extract_data(file_path):
     nlp = spacy.load("en_core_web_lg")
-    with open(file_path, "r") as f:
+    with open(str(file_path), "r") as f:
         text = f.read().strip()
         doc = nlp(text)
         entities = []
@@ -69,9 +50,11 @@ def match_data_to_fields(form_fields, extracted_data):
     return matched_data
 
 def fill_form(template_path, data):
-    with PyPDFLoader(template_path) as reader, ReportLab.PdfWriter() as writer:
-        for page in reader.pages:
-            writer.addPage(page)
+    with PyMuPDF.open(template_path, "rb") as pdf:
+        writer = PyMuPDF.PdfWriter()
+        for page in pdf:
+            new_page = writer.addPage()
+            new_page.copyContentsFrom(page)
             for field_name, field_value in data.items():
                 for field in page.form_fields:
                     if field.name == field_name:
@@ -93,14 +76,19 @@ document_files = st.file_uploader("Relevant Documents (.txt)", type=["txt"], acc
 
 # Processing and results section
 if template_file and document_files:
+    st.markdown("**The file is sucessfully Uploaded.**")
+    template=save_path(template_file)
+    # doc=save_path(document_files)
     progress_bar = st.empty()
     st.write("Analyzing documents...")
     with st.spinner("Processing documents..."):
         start_time = time.time()
-        form_fields = get_form_structure(template_file)
+        form_fields = get_form_structure(template)
         extracted_data = []
         for document in document_files:
-            extracted_data.extend(extract_data(document))
+            doc=save_path(document)
+            print(doc)
+            extracted_data.extend(extract_data(doc))
         matched_data = match_data_to_fields(form_fields, extracted_data)
         progress_bar.progress(100)
         end_time = time.time()
@@ -121,7 +109,7 @@ if template_file and document_files:
 
     # Generate and download filled form
     if st.button("Generate Filled Form 🪄"):
-        fill_form(template_file, matched_data)
+        fill_form(template, matched_data)
         st.success("Filled form generated! Download it here:")
         st.download_button("filled_form.pdf", "filled_form.pdf")
 
