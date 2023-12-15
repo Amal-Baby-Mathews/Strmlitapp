@@ -1,0 +1,79 @@
+Below is a randomly generated sample test information based on the given job application form:
+
+```plaintext
+JOB APPLICATION FORM
+
+POST TITLE: Data Analyst
+
+CLOSING DATE: Forms to be received on or before 15th December 2023
+
+1. Personal details
+
+Mr/Mrs/Ms/Miss: Mr
+Surname/Last Name: Smith
+First Names: John Michael
+Address: 123 Main Street
+Post Code: AB12 3CD
+Daytime Telephone Number: 555-1234
+Mobile Telephone Number: 555-5678
+Email: john.smith@example.com
+N.I. No: AB123456C
+
+2. Educational / Technical / Professional Qualifications
+
+Where attained          Subjects / Qualifications          Year        Grade
+University of XYZ       Bachelor of Science in Computer Science     2018         Distinction
+ABC Technical Institute  Diploma in Data Analysis                    2016         Merit
+
+3. Details of relevant training courses
+
+Course subject and provider                   Length of course        Year
+Data Visualization Techniques - XYZ Institute      3 months           2019
+Advanced SQL - Online Course                       2 months           2020
+
+4. Employment history
+
+Employer (Name & Full Address)          Jobs held and main duties        From            To            Salary/Grade        Reason for leaving
+Tech Solutions Ltd                       Data Analyst                    2019           Present       Grade B             Current Position
+ABC Software Company                    Junior Developer                2017           2019          Grade A             Career Growth
+
+[Additional employment history rows]
+
+5. Relevant Knowledge, Experience & Skills
+
+Supporting statement: I possess strong analytical skills and hands-on experience in data analysis. My proficiency in SQL, data visualization, and programming languages aligns well with the requirements of the Data Analyst role.
+
+6. Background information
+
+Do you hold a current driving licence? Yes
+Is it a Full / Provisional / LGV / PCV licence? Full
+
+If you are a person with a disability, is there anything we need to know to offer you a fair selection interview? No
+
+References:
+
+1. Name: Jane Doe
+   Address: 456 Oak Street
+   Tel. No: 555-9876
+   Email: jane.doe@example.com
+   Occupation: Data Manager
+
+2. Name: Bob Johnson
+   Address: 789 Pine Avenue
+   Tel. No: 555-6543
+   Email: bob.johnson@example.com
+   Occupation: Senior Analyst
+
+Are there any restrictions to your residence in the UK which might affect your right to take up employment with the SHEU? No
+
+If successful, would you require a work permit/Certificate of Sponsorship prior to taking up employment? No
+
+Declaration
+
+I declare that the information I have given is accurate and true.
+
+Signed: John M. Smith
+Date: December 10, 2023
+```
+
+This is a fictional and randomly generated example to simulate the structure and content of a job application form.
