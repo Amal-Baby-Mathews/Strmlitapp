@@ -111,8 +111,12 @@ def match_data_to_fields(form_fields, extracted_data):
                 break
     return matched_data
 load_dotenv() #create .env file with the corresponding passwords
-qAPI_URL = os.environ.get("qAPI_URL")
-qheaders = os.environ.get("qheaders")
+# qAPI_URL = str(os.environ["qAPI_URL"])
+# qheaders = str(os.environ["qheaders"])
+# print(qAPI_URL)
+qAPI_URL = "https://api-inference.huggingface.co/models/deepset/roberta-base-squad2"
+qheaders = {"Authorization": "Bearer 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"}
+
 def queryQ(payload):
 	response = requests.post(qAPI_URL, headers=qheaders, json=payload)
 	return response.json()
@@ -194,10 +198,19 @@ def fill_form(pdf_path, doc):
                                 print(output)
                                 print(f"KeyError encountered on attempt {attempt + 1}/{retries}. Retrying in 20 seconds...")
                                 time.sleep(20)  # Wait for 20 seconds before retrying
-                        filled_text = len(word_text)*"  " + out
-                        point = (x0, y1)
-                        page.insert_text(point, filled_text)
+                        filled_text = len(word_text)*" " + out
+                        # avg_char_width = fitz.utils.get_avg_char_width(page, word_text)
+                        # text_width = fitz.Rect(0, 0, len(word_text) * avg_char_width, 0).width
+                        # filled_text_width = fitz.Rect(0, 0, len(filled_text) * fitz.utils.get_avg_char_width(page, filled_text), 0).width
+                        # adjustment = (text_width - filled_text_width) / 2
+                        point = (x0 + 30 ,y1-5)
+                        # page.insert_text(point, filled_text)
+                        # Calculate the position to insert filled_text to the right of word_text
+                        filled_text_x0 = x0  # Start the filled text immediately after word_text
+                        filled_text_y0 = y0  # Align filled text with the same baseline as word_text
 
+                        # Insert filled_text to the right of word_text in the PDF
+                        page.insert_text(point, filled_text)
         # Save filled PDF
         doc.save("Filled_up.pdf")
         doc.close()
