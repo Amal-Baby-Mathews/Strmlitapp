@@ -6,7 +6,7 @@ from PyPDF2 import PdfReader
 import spacy
 from langchain.embeddings import HuggingFaceEmbeddings
 import time
-# import os
+import os
 # from uuid import uuid4
 from pathlib import Path
 import re
@@ -14,6 +14,8 @@ from langchain.vectorstores import FAISS
 import requests
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from spacy.matcher import Matcher
+from dotenv import load_dotenv
+
 def save_path(template_file):
     save_folder = r'C:\Users\seq_amal\Strmlitapp\data'
     save_path = Path(save_folder, template_file.name)
@@ -108,8 +110,9 @@ def match_data_to_fields(form_fields, extracted_data):
                 matched_data[field["name"]] = entity["text"]
                 break
     return matched_data
-qAPI_URL = "https://api-inference.huggingface.co/models/deepset/roberta-base-squad2"
-qheaders = {"Authorization": "Bearer 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"}
+load_dotenv() #create .env file with the corresponding passwords
+qAPI_URL = os.environ.get("qAPI_URL")
+qheaders = os.environ.get("qheaders")
 def queryQ(payload):
 	response = requests.post(qAPI_URL, headers=qheaders, json=payload)
 	return response.json()
