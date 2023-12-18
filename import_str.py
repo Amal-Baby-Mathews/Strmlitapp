@@ -2,7 +2,7 @@ import streamlit as st
 import fitz
 # from langchain.document_loaders import PyPDFLoader
 from io import BytesIO
-from PyPDF2 import PdfReader, PdfWriter
+from PyPDF2 import PdfReader
 import spacy
 from langchain.embeddings import HuggingFaceEmbeddings
 import time
@@ -13,6 +13,7 @@ import re
 from langchain.vectorstores import FAISS
 import requests
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from spacy.matcher import Matcher
 def save_path(template_file):
     save_folder = r'C:\Users\seq_amal\Strmlitapp\data'
     save_path = Path(save_folder, template_file.name)
@@ -74,15 +75,29 @@ def get_form_structure(file_path):
 
   return form_fields
 
+
 def extract_data(file_path):
     #spacy.cli.download("en_core_web_sm")
     nlp = spacy.load("en_core_web_sm")
+    matcher = Matcher(nlp.vocab)
+    pattern = [
+    {'ORTH': {'REGEX': r'^([A-Za-z ]+)(:([^\n]+))$'}},
+  ]
+
+    matcher.add("CustomLabel", [pattern])
     with open(str(file_path), "r") as f:
         text = f.read().strip()
+
         doc = nlp(text)
+        #print(doc)
         entities = []
-        for ent in doc.ents:
-            entities.append({"text": ent.text, "label": ent.label_})
+        # for ent in doc.ents:
+        #     entities.append({"text": str(ent), "label": ent.label_})
+        for ent in doc:
+            if ent.dep_ == "appos":  # Check for appositional modifier dependency
+                entities.append({"text": f"{ent.head.text}: {ent}", "label": "InformationPair"})
+
+    
     return entities
 
 def match_data_to_fields(form_fields, extracted_data):
@@ -99,7 +114,7 @@ def queryQ(payload):
 	response = requests.post(qAPI_URL, headers=qheaders, json=payload)
 	return response.json()
 
-def fill_form(pdf_path, data):
+def fill_form(pdf_path, doc):
         model_name = "sentence-transformers/all-MiniLM-L6-v2"
         model_kwargs = {'device': 'cpu'}
         encode_kwargs = {'normalize_embeddings': False}
@@ -112,45 +127,70 @@ def fill_form(pdf_path, data):
         index = FAISS.from_texts(texts,embeddings)
         # Initialize Faiss index and Hugging Face pipeline
         
-        for document in data:
-            text_splitter = RecursiveCharacterTextSplitter(
-               chunk_size=100,
-               chunk_overlap=50,
-               )
-            documents = text_splitter.split_text(document["text"])
-            index.add_texts(documents)
+        with open(str(doc), "r") as f:
+            text = f.read().strip()
+
+            
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=40,
+            chunk_overlap=5,
+            )
+        documents = text_splitter.split_text(text)
+        index.add_texts(documents)
         
         # Open PDF with PyMuPDF
         doc = fitz.open(pdf_path)
 
         # Iterate through pages and lines
         for page in doc:
-            blocks = page.get_text("blocks")
-            for block in blocks:
-                text = block[4]  # Get block text
+            
+            
+            for word in page.get_text("words"):
+                word_text=word[4]
+                x0, y0, x1, y1 = word[0:4]
 
                 # Identify empty form line using regex
-                if re.match(r"(.*):\s*$", text):
-                    field_label = re.match(r"(.*):", text).group(1)  # Extract field label
+                if re.match(r"(.*):\s*$", word_text):
+                    
+                    field_label = word_text # Extract field label
                     relevant_documents = index.similarity_search_with_relevance_scores(field_label)
+                    
                     answer = []                   
                     for document, relevance_score in relevant_documents:
+                        
+                        #print("no relevance yet!!",relevance_score,document.page_content,"|||",field_label)
                         if relevance_score > 0.4:
-                            print(relevance_score,document.page_content)
+                            
+                            print("relevance!!",relevance_score,document.page_content, "|||",field_label)
                             answer.append(document.page_content)
-                    answer = ' '.join(answer)
+                    if answer !=[]:
+                        answer = ' '.join(answer)
+                    
                     # Semantic search using Faiss
-                    query = f"What is the value for {field_label}?"
-                    output = queryQ({
-        "inputs": {
-            "question": query,
-            "context": answer
-        },
-    })
-                    time.sleep(20)
-                    # Fill empty space with retrieved information
-                    filled_text = text.replace(":", ": " + output)
-                    page.insert_text((block[0], block[1], block[2], block[3]), filled_text)
+                    if answer !=[] and answer is not None:
+                        
+                        query = f"What is the value for {field_label}?"
+                        output = queryQ({
+            "inputs": {
+                "question": query,
+                "context": answer
+            },
+        })
+                        # Fill empty space with retrieved information
+                        retries = 3  # Define the number of retries
+
+                        for attempt in range(retries):
+                            try:
+                                
+                                out = output["answer"]
+                                break  # Success, break out of the loop
+                            except KeyError:
+                                print(output)
+                                print(f"KeyError encountered on attempt {attempt + 1}/{retries}. Retrying in 20 seconds...")
+                                time.sleep(20)  # Wait for 20 seconds before retrying
+                        filled_text = word_text + ": " + out
+                        point = (x0, y1)
+                        page.insert_text(point, filled_text)
 
         # Save filled PDF
         doc.save("Filled_up.pdf")
@@ -173,14 +213,13 @@ if template_file and document_files:
     template=str(save_path(template_file))
     # doc=save_path(document_files)
     progress_bar = st.empty()
-    st.write("Analyzing documents...")
+    st.write("Analyzing documents")
     with st.spinner("Processing documents..."):
         start_time = time.time()
         form_fields = get_form_structure(template)
         extracted_data = []
         for document in document_files:
             doc=save_path(document)
-            print(doc)
             extracted_data.extend(extract_data(doc))
         matched_data = match_data_to_fields(form_fields, extracted_data)
         progress_bar.progress(100)
@@ -201,7 +240,8 @@ if template_file and document_files:
 
     # Generate and download filled form
     if st.button("Generate Filled Form 🪄"):
-        fill_form(template, extracted_data)
+        # fill_form(template, extracted_data)
+        fill_form(template, doc)
         st.success("Filled form generated! Download it here:")
         st.download_button("filled_form.pdf", "filled_form.pdf")
 
