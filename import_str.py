@@ -146,23 +146,26 @@ def fill_form(pdf_path, doc):
             
             
             for word in page.get_text("words"):
+                
                 word_text=word[4]
                 x0, y0, x1, y1 = word[0:4]
 
                 # Identify empty form line using regex
                 if re.match(r"(.*):\s*$", word_text):
-                    
+                    #print(word_text)
                     field_label = word_text # Extract field label
                     relevant_documents = index.similarity_search_with_relevance_scores(field_label)
                     
                     answer = []                   
                     for document, relevance_score in relevant_documents:
                         
-                        #print("no relevance yet!!",relevance_score,document.page_content,"|||",field_label)
-                        if relevance_score > 0.4:
+                        
+                        if relevance_score > 0.2 and relevance_score < 0.9:
                             
                             print("relevance!!",relevance_score,document.page_content, "|||",field_label)
                             answer.append(document.page_content)
+                        #else:
+                            #print("no relevance yet!!",relevance_score,document.page_content,"|||",field_label)
                     if answer !=[]:
                         answer = ' '.join(answer)
                     
@@ -188,7 +191,7 @@ def fill_form(pdf_path, doc):
                                 print(output)
                                 print(f"KeyError encountered on attempt {attempt + 1}/{retries}. Retrying in 20 seconds...")
                                 time.sleep(20)  # Wait for 20 seconds before retrying
-                        filled_text = word_text + ": " + out
+                        filled_text = len(word_text)*"  " + out
                         point = (x0, y1)
                         page.insert_text(point, filled_text)
 
